@@ -3,174 +3,452 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>文献卡片批量提取</title>
+<title>文献卡片提取工具</title>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #f7f7f5; --surface: #ffffff; --surface-hover: #f2f2ef;
-    --border: #e4e4e0; --border-strong: #c8c8c2;
-    --text-primary: #1a1a18; --text-secondary: #6b6b66; --text-muted: #9e9e98;
-    --accent: #2563eb; --accent-bg: #eff6ff; --accent-border: #bfdbfe;
-    --success: #16a34a; --success-bg: #f0fdf4;
-    --warning: #b45309; --warning-bg: #fffbeb; --warning-border: #fde68a;
-    --danger: #dc2626; --danger-bg: #fef2f2; --danger-border: #fecaca;
-    --radius: 8px; --radius-lg: 12px;
-    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --font-mono: 'Menlo','Monaco','Consolas',monospace;
-  }
-  body { font-family: var(--font); background: var(--bg); color: var(--text-primary); min-height: 100vh; padding: 2rem 1rem; line-height: 1.6; }
-  .container { max-width: 780px; margin: 0 auto; }
-  .header { margin-bottom: 1.75rem; }
-  .header h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.4px; }
-  .header p { font-size: 14px; color: var(--text-secondary); margin-top: 6px; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* Config */
-  .config-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1.25rem; }
-  .config-panel h2 { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px; }
-  .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .config-field label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 500; }
-  .config-field input { width: 100%; height: 36px; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: var(--radius); font-size: 13px; font-family: var(--font-mono); color: var(--text-primary); background: var(--bg); outline: none; transition: border-color .15s; }
-  .config-field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-  .config-field.full { grid-column: 1 / -1; }
-  .config-timeout { margin-top: 10px; display: flex; align-items: center; gap: 10px; }
-  .config-timeout label { font-size: 12px; color: var(--text-secondary); font-weight: 500; white-space: nowrap; }
-  .config-timeout input[type=range] { flex: 1; accent-color: var(--accent); }
-  .config-timeout span { font-size: 13px; font-weight: 600; color: var(--text-primary); min-width: 48px; }
+:root {
+  --bg: #f0ede8;
+  --surface: #faf9f7;
+  --surface-2: #ffffff;
+  --surface-hover: #f5f3ef;
+  --border: #e8e4de;
+  --border-strong: #d4cfc8;
+  --text-primary: #1c1917;
+  --text-secondary: #6b6560;
+  --text-muted: #a8a29e;
+  --accent: #0f4c81;
+  --accent-light: #1d6fa4;
+  --accent-bg: #eef4fb;
+  --accent-border: #c2d9ef;
+  --success: #15803d;
+  --success-bg: #f0fdf4;
+  --success-border: #bbf7d0;
+  --warning: #92400e;
+  --warning-bg: #fffbeb;
+  --warning-border: #fde68a;
+  --danger: #b91c1c;
+  --danger-bg: #fef2f2;
+  --danger-border: #fecaca;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+}
 
-  /* Platform tabs */
-  .platform-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
-  .tab-btn { padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border-strong); background: var(--bg); color: var(--text-secondary); transition: all .15s; }
-  .tab-btn.active { background: var(--text-primary); color: #fff; border-color: var(--text-primary); }
-  .platform-section { display: none; }
-  .platform-section.active { display: block; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  padding: 0;
+  line-height: 1.6;
+}
 
-  /* Notice */
-  .notice { display: flex; gap: 8px; align-items: flex-start; background: var(--warning-bg); border: 1px solid var(--warning-border); border-radius: var(--radius); padding: 10px 12px; font-size: 13px; color: var(--warning); margin-bottom: 1.25rem; line-height: 1.5; }
+/* ── Layout ── */
+.layout { display: flex; min-height: 100vh; }
 
-  /* Drop zone */
-  .drop-zone { border: 2px dashed var(--border-strong); border-radius: var(--radius-lg); padding: 2.5rem 1.5rem; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; background: var(--surface); margin-bottom: 1rem; }
-  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: var(--accent-bg); }
-  .drop-zone h3 { font-size: 15px; font-weight: 500; margin-top: 10px; }
-  .drop-zone p { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
-  .drop-zone input { display: none; }
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  overflow-y: auto;
+  z-index: 10;
+}
 
-  /* Queue */
-  .queue { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; }
-  .queue-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
-  .queue-item.item-error { border-color: var(--danger-border); background: var(--danger-bg); }
-  .item-name { flex: 1; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .item-size { font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
-  .item-msg { font-size: 11px; color: var(--danger); flex-shrink: 0; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .badge { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; flex-shrink: 0; }
-  .badge-pending { background: #f3f4f6; color: #6b7280; }
-  .badge-running { background: var(--accent-bg); color: var(--accent); }
-  .badge-done { background: var(--success-bg); color: var(--success); }
-  .badge-error { background: var(--danger-bg); color: var(--danger); }
-  .icon-btn { cursor: pointer; color: var(--text-muted); flex-shrink: 0; padding: 4px; line-height: 0; border: none; background: none; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; transition: color .12s, background .12s; }
-  .icon-btn.retry-btn:hover { color: var(--accent); background: var(--accent-bg); }
-  .icon-btn.remove-btn:hover { color: var(--danger); background: var(--danger-bg); }
+.main {
+  flex: 1;
+  margin-left: 260px;
+  padding: 2rem 2rem 4rem;
+  max-width: calc(100% - 260px);
+}
 
-  /* Actions */
-  .actions { display: flex; align-items: center; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap; }
-  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 0 16px; height: 36px; border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: opacity .15s, background .15s; white-space: nowrap; }
-  .btn:disabled { opacity: .4; cursor: not-allowed; }
-  .btn-primary { background: var(--text-primary); color: #fff; }
-  .btn-primary:not(:disabled):hover { opacity: .85; }
-  .btn-secondary { background: var(--surface); color: var(--text-primary); border: 1px solid var(--border-strong); }
-  .btn-secondary:not(:disabled):hover { background: var(--surface-hover); }
-  .btn-retry { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
-  .btn-retry:not(:disabled):hover { background: #dbeafe; }
-  .progress-wrap { flex: 1; min-width: 120px; display: flex; align-items: center; gap: 10px; }
-  .progress-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
-  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .3s ease; }
-  .progress-label { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+/* ── Sidebar ── */
+.sidebar-header {
+  padding: 1.5rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.sidebar-logo-icon {
+  width: 30px; height: 30px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.sidebar-logo h1 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+}
+.sidebar-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding-left: 38px;
+}
 
-  /* Results */
-  .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-  .results-header h2 { font-size: 16px; font-weight: 600; }
-  .result-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 8px; }
-  .result-header { display: flex; align-items: center; gap: 8px; padding: 11px 14px; cursor: pointer; user-select: none; border-bottom: 1px solid transparent; transition: background .12s; }
-  .result-header:hover { background: var(--surface-hover); }
-  .result-header.open { border-bottom-color: var(--border); }
-  .result-title { flex: 1; font-size: 13px; font-weight: 500; }
-  .result-chevron { color: var(--text-muted); transition: transform .2s; flex-shrink: 0; }
-  .result-chevron.open { transform: rotate(180deg); }
-  .result-body { display: none; padding: 14px 16px; font-family: var(--font-mono); font-size: 12px; line-height: 1.75; color: var(--text-primary); white-space: pre-wrap; word-break: break-word; max-height: 500px; overflow-y: auto; background: #fafafa; }
-  .result-body.open { display: block; }
+.sidebar-section { padding: 1rem 1.25rem 0; }
+.sidebar-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 8px;
+}
 
-  .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff; border-radius: 50%; animation: spin .65s linear infinite; display: inline-block; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+/* Config fields in sidebar */
+.cfg-field { margin-bottom: 10px; }
+.cfg-field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.cfg-field .input-wrap { position: relative; }
+.cfg-field input {
+  width: 100%;
+  height: 32px;
+  padding: 0 30px 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  background: var(--surface-2);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.cfg-field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(15,76,129,0.1); }
+.cfg-field input[type="password"] { letter-spacing: 2px; }
+.toggle-vis {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  border: none; background: none; cursor: pointer;
+  color: var(--text-muted); padding: 2px; line-height: 0;
+}
+.toggle-vis:hover { color: var(--text-secondary); }
+
+.cfg-readonly {
+  width: 100%;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.timeout-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+.timeout-row label { font-size: 11px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+.timeout-row input[type=range] { flex: 1; accent-color: var(--accent); height: 3px; }
+.timeout-row span { font-size: 12px; font-weight: 700; color: var(--accent); min-width: 36px; text-align: right; }
+
+/* ── History in sidebar ── */
+.history-section { padding: 1rem 1.25rem; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.history-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.history-header .sidebar-section-label { margin-bottom: 0; }
+.history-clear { font-size: 11px; color: var(--text-muted); cursor: pointer; border: none; background: none; padding: 2px 4px; border-radius: 4px; }
+.history-clear:hover { color: var(--danger); background: var(--danger-bg); }
+
+.history-list { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; flex: 1; }
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background .12s;
+  border: 1px solid transparent;
+}
+.history-item:hover { background: var(--surface-hover); border-color: var(--border); }
+.history-item-icon { color: var(--text-muted); flex-shrink: 0; }
+.history-item-info { flex: 1; min-width: 0; }
+.history-item-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.history-item-meta { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+.history-item-dl {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 4px;
+  line-height: 0;
+}
+.history-item-dl:hover { color: var(--accent); background: var(--accent-bg); }
+.history-empty { font-size: 12px; color: var(--text-muted); text-align: center; padding: 1.5rem 0; }
+
+/* ── Main area ── */
+.page-header { margin-bottom: 1.75rem; }
+.page-header h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.4px; color: var(--text-primary); }
+.page-header p { font-size: 14px; color: var(--text-secondary); margin-top: 4px; }
+
+/* Notice */
+.notice {
+  display: flex; gap: 10px; align-items: flex-start;
+  background: var(--warning-bg); border: 1px solid var(--warning-border);
+  border-radius: var(--radius); padding: 10px 14px;
+  font-size: 13px; color: var(--warning); margin-bottom: 1.5rem; line-height: 1.55;
+}
+
+/* Drop zone */
+.drop-zone {
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-xl);
+  padding: 3rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, transform .1s;
+  background: var(--surface);
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  transform: scale(1.005);
+}
+.drop-zone-icon {
+  width: 52px; height: 52px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 14px;
+}
+.drop-zone h3 { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+.drop-zone p { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+.drop-zone input { display: none; }
+
+/* Queue */
+.queue { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1.25rem; }
+.queue-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color .12s;
+}
+.queue-item.item-error { border-color: var(--danger-border); background: var(--danger-bg); }
+.queue-item.item-done { border-color: var(--success-border); }
+.item-name { flex: 1; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item-size { font-size: 11px; color: var(--text-muted); flex-shrink: 0; background: var(--bg); padding: 2px 6px; border-radius: 10px; }
+.item-msg { font-size: 11px; color: var(--danger); flex-shrink: 0; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.badge { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; flex-shrink: 0; }
+.badge-pending { background: #f3f4f6; color: #6b7280; }
+.badge-running { background: var(--accent-bg); color: var(--accent); }
+.badge-done { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+.badge-error { background: var(--danger-bg); color: var(--danger); }
+.icon-btn { cursor: pointer; color: var(--text-muted); flex-shrink: 0; padding: 4px; line-height: 0; border: none; background: none; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; transition: color .12s, background .12s; }
+.icon-btn.retry-btn:hover { color: var(--accent); background: var(--accent-bg); }
+.icon-btn.remove-btn:hover { color: var(--danger); background: var(--danger-bg); }
+
+/* Actions bar */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 0 16px; height: 36px; border-radius: var(--radius);
+  font-size: 13px; font-weight: 600; cursor: pointer; border: none;
+  transition: all .15s; white-space: nowrap; letter-spacing: -0.1px;
+}
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(15,76,129,0.3);
+}
+.btn-primary:not(:disabled):hover { background: var(--accent-light); box-shadow: 0 2px 6px rgba(15,76,129,0.35); }
+.btn-secondary { background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--border-strong); }
+.btn-secondary:not(:disabled):hover { background: var(--surface-hover); }
+.btn-retry { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+.btn-retry:not(:disabled):hover { background: #dbeafe; }
+.progress-wrap { flex: 1; min-width: 120px; display: flex; align-items: center; gap: 10px; }
+.progress-track { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .4s ease; }
+.progress-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+
+/* Results */
+.results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.results-header h2 { font-size: 17px; font-weight: 600; color: var(--text-primary); }
+.result-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow .15s;
+}
+.result-card:hover { box-shadow: var(--shadow); }
+.result-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; cursor: pointer; user-select: none;
+  border-bottom: 1px solid transparent; transition: background .12s;
+}
+.result-header:hover { background: var(--surface-hover); }
+.result-header.open { border-bottom-color: var(--border); }
+.result-title { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.result-chevron { color: var(--text-muted); transition: transform .2s; flex-shrink: 0; }
+.result-chevron.open { transform: rotate(180deg); }
+.result-body {
+  display: none;
+  padding: 16px 18px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 520px;
+  overflow-y: auto;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+.result-body.open { display: block; }
+
+/* Spinner */
+.spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin .65s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 </style>
 </head>
 <body>
-<div class="container">
+<div class="layout">
 
-  <div class="header">
-    <h1>文献卡片批量提取</h1>
-    <p>上传多篇 PDF 论文，逐篇调用工作流，自动生成结构化文献卡片</p>
+<!-- ── Sidebar ── -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="11" x2="15" y2="11"/>
+        </svg>
+      </div>
+      <h1>文献卡片提取</h1>
+    </div>
+    <div class="sidebar-subtitle">学术 PDF 结构化提取工具</div>
   </div>
 
-  <!-- Config -->
-  <div class="config-panel">
-    <h2>平台与 API 配置</h2>
+  <!-- API Config -->
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">API 配置</div>
 
-    <div class="platform-tabs">
-      <button class="tab-btn" id="tabDify" onclick="switchPlatform('dify')">Dify</button>
-      <button class="tab-btn active" id="tabCoze" onclick="switchPlatform('coze')">扣子空间 (Coze)</button>
-    </div>
-
-    <!-- Dify -->
-    <div class="platform-section" id="sectionDify">
-      <div class="config-grid">
-        <div class="config-field">
-          <label>API Base URL</label>
-          <input type="text" id="difyBase" value="https://api.dify.ai/v1">
-        </div>
-        <div class="config-field">
-          <label>API Key</label>
-          <input type="text" id="difyKey" value="app-yjtOzuRM94DfJRsC5keFxPW5">
-        </div>
+    <div class="cfg-field">
+      <label>API Token</label>
+      <div class="input-wrap">
+        <input type="password" id="cozeToken" value="pat_nfbkNUzD6Lg3ugcMmA8vhLIGV0w5LPOiRp2syvmiel099a6MWZxVlTFmjO3bcgdQ" autocomplete="off">
+        <button class="toggle-vis" id="toggleToken" title="显示/隐藏 Token" onclick="toggleTokenVis()">
+          <svg id="eyeIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
       </div>
     </div>
 
-    <!-- Coze -->
-    <div class="platform-section active" id="sectionCoze">
-      <div class="config-grid">
-        <div class="config-field">
-          <label>API Token (pat_...)</label>
-          <input type="text" id="cozeToken" value="pat_nfbkNUzD6Lg3ugcMmA8vhLIGV0w5LPOiRp2syvmiel099a6MWZxVlTFmjO3bcgdQ">
-        </div>
-        <div class="config-field">
-          <label>Workflow ID <span style="font-weight:400;color:var(--text-muted)">（URL中的 workflow_id=后面的数字）</span></label>
-          <input type="text" id="cozeWorkflowId" placeholder="例：7386940488******">
-        </div>
-      </div>
+    <div class="cfg-field">
+      <label>Workflow ID</label>
+      <div class="cfg-readonly">7657831949192970280</div>
     </div>
 
-    <div class="config-timeout">
+    <div class="cfg-field">
       <label>单篇超时</label>
-      <input type="range" id="timeoutRange" min="60" max="300" step="30" value="180">
-      <span id="timeoutLabel">180 秒</span>
+      <div class="timeout-row">
+        <input type="range" id="timeoutRange" min="60" max="300" step="30" value="180">
+        <span id="timeoutLabel">180s</span>
+      </div>
     </div>
+  </div>
+
+  <!-- History -->
+  <div class="history-section">
+    <div class="history-header">
+      <div class="sidebar-section-label">历史记录</div>
+      <button class="history-clear" id="btnHistoryClear" onclick="clearHistory()">清空</button>
+    </div>
+    <div class="history-list" id="historyList">
+      <div class="history-empty">暂无历史记录</div>
+    </div>
+  </div>
+</aside>
+
+<!-- ── Main ── -->
+<main class="main">
+  <div class="page-header">
+    <h2>批量文献卡片提取</h2>
+    <p>上传 PDF 论文，自动调用扣子工作流，生成标准化文献卡片</p>
   </div>
 
   <div class="notice">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px">
       <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
     </svg>
-    <span>串行处理，每篇独立，失败可单独重试。<b>扣子工作流必须先发布</b>才能通过 API 调用。处理速度取决于论文长度，每篇约需 30–120 秒。</span>
+    <span>每篇串行处理，失败可单独重试。每篇约需 30–120 秒，处理中请勿关闭页面。<b>工作流必须在扣子空间中已发布</b>才能通过 API 调用。</span>
   </div>
 
   <!-- Drop zone -->
   <div class="drop-zone" id="dropZone">
-    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#9e9e98" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/>
-    </svg>
+    <div class="drop-zone-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+      </svg>
+    </div>
     <h3>拖拽 PDF 文件到此处</h3>
-    <p>或点击选择文件 · 支持多选</p>
+    <p>或点击选择文件 · 支持多选 · 单文件建议不超过 15 MB</p>
     <input type="file" id="fileInput" accept=".pdf" multiple>
   </div>
 
@@ -195,9 +473,10 @@
     </div>
   </div>
 
+  <!-- Results -->
   <div id="resultsSection" style="display:none">
     <div class="results-header">
-      <h2>提取结果</h2>
+      <h2>本次提取结果</h2>
       <button class="btn btn-secondary" id="btnExport">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         导出全部 Markdown
@@ -205,38 +484,110 @@
     </div>
     <div id="resultsList"></div>
   </div>
+</main>
 
-</div>
+</div><!-- .layout -->
+
 <script>
-// ── Platform switch ────────────────────────────────────────────────────────
-let currentPlatform = 'coze';
+// ══════════════════════════════════════════════════════
+// Config
+// ══════════════════════════════════════════════════════
+const WORKFLOW_ID = '7657831949192970280';
 
-function switchPlatform(p) {
-  currentPlatform = p;
-  document.getElementById('tabDify').classList.toggle('active', p === 'dify');
-  document.getElementById('tabCoze').classList.toggle('active', p === 'coze');
-  document.getElementById('sectionDify').classList.toggle('active', p === 'dify');
-  document.getElementById('sectionCoze').classList.toggle('active', p === 'coze');
-}
-
-// ── Config ─────────────────────────────────────────────────────────────────
 const timeoutRange = document.getElementById('timeoutRange');
 const timeoutLabel = document.getElementById('timeoutLabel');
-timeoutRange.addEventListener('input', () => { timeoutLabel.textContent = timeoutRange.value + ' 秒'; });
+timeoutRange.addEventListener('input', () => { timeoutLabel.textContent = timeoutRange.value + 's'; });
 
 function cfg() {
-  const timeout = parseInt(timeoutRange.value) * 1000;
-  if (currentPlatform === 'dify') {
-    return { platform: 'dify', base: document.getElementById('difyBase').value.trim().replace(/\/$/, ''), key: document.getElementById('difyKey').value.trim(), timeout };
+  return {
+    token: document.getElementById('cozeToken').value.trim(),
+    workflowId: WORKFLOW_ID,
+    timeout: parseInt(timeoutRange.value) * 1000
+  };
+}
+
+function toggleTokenVis() {
+  const inp = document.getElementById('cozeToken');
+  const icon = document.getElementById('eyeIcon');
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
   } else {
-    return { platform: 'coze', token: document.getElementById('cozeToken').value.trim(), workflowId: document.getElementById('cozeWorkflowId').value.trim(), timeout };
+    inp.type = 'password';
+    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
   }
 }
 
-// ── State ──────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════
+// State
+// ══════════════════════════════════════════════════════
 let files = [], results = [], isRunning = false;
 
-// ── DOM ────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════
+// History (localStorage)
+// ══════════════════════════════════════════════════════
+const HISTORY_KEY = 'lit_card_history';
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function saveToHistory(name, content) {
+  const history = loadHistory();
+  const entry = {
+    id: Date.now(),
+    name: name.replace(/\.pdf$/i, ''),
+    date: new Date().toLocaleString('zh-CN', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }),
+    content
+  };
+  history.unshift(entry);
+  // Keep last 50
+  if (history.length > 50) history.splice(50);
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch {}
+  renderHistory();
+}
+
+function clearHistory() {
+  if (!confirm('确认清空所有历史记录？')) return;
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+}
+
+function downloadHistoryItem(entry) {
+  const sep = '═'.repeat(54);
+  const md = `${sep}\n文献卡片 — ${entry.name}\n${sep}\n\n${entry.content}`;
+  downloadMd(md, `文献卡片_${entry.name.slice(0, 30)}.md`);
+}
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  const history = loadHistory();
+  if (!history.length) {
+    list.innerHTML = '<div class="history-empty">暂无历史记录</div>';
+    return;
+  }
+  list.innerHTML = history.map(e => `
+    <div class="history-item">
+      <svg class="history-item-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+      </svg>
+      <div class="history-item-info">
+        <div class="history-item-name" title="${e.name}">${e.name}</div>
+        <div class="history-item-meta">${e.date}</div>
+      </div>
+      <button class="history-item-dl" title="下载此卡片" onclick="downloadHistoryItem(${JSON.stringify(e).replace(/"/g,'&quot;')})">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </button>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// DOM refs
+// ══════════════════════════════════════════════════════
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
 const queueEl = document.getElementById('queue');
@@ -251,11 +602,16 @@ const progressLabel = document.getElementById('progressLabel');
 const resultsSection = document.getElementById('resultsSection');
 const resultsList = document.getElementById('resultsList');
 
-// ── File handling ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════
+// File handling
+// ══════════════════════════════════════════════════════
 dropZone.addEventListener('click', () => fileInput.click());
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); addFiles([...e.dataTransfer.files].filter(f => f.name.endsWith('.pdf'))); });
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  addFiles([...e.dataTransfer.files].filter(f => f.name.endsWith('.pdf')));
+});
 fileInput.addEventListener('change', () => { addFiles([...fileInput.files]); fileInput.value = ''; });
 
 function fmtSize(b) { return b < 1048576 ? (b/1024).toFixed(0)+' KB' : (b/1048576).toFixed(1)+' MB'; }
@@ -280,19 +636,21 @@ function renderQueue() {
     const label = { pending:'待处理', running:'处理中', done:'完成', error:'失败' }[item.status];
     const isErr = item.status === 'error';
     const div = document.createElement('div');
-    div.className = 'queue-item' + (isErr ? ' item-error' : '');
+    div.className = 'queue-item' + (isErr ? ' item-error' : item.status === 'done' ? ' item-done' : '');
     div.innerHTML = `
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${isErr ? 'var(--danger)' : 'var(--text-muted)'}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+           stroke="${isErr ? 'var(--danger)' : item.status==='done' ? 'var(--success)' : 'var(--text-muted)'}"
+           stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
       </svg>
       <span class="item-name" title="${item.file.name}">${item.file.name}</span>
       <span class="item-size">${fmtSize(item.file.size)}</span>
       ${isErr && item.errMsg ? `<span class="item-msg" title="${item.errMsg}">${item.errMsg}</span>` : ''}
       <span class="badge badge-${item.status}">${label}</span>
-      ${isErr ? `<button class="icon-btn retry-btn" data-idx="${idx}" title="重试" aria-label="重试">
+      ${isErr ? `<button class="icon-btn retry-btn" data-idx="${idx}" title="重试">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.37"/></svg>
       </button>` : ''}
-      ${item.status === 'pending' ? `<button class="icon-btn remove-btn" data-idx="${idx}" title="移除" aria-label="移除">
+      ${item.status === 'pending' ? `<button class="icon-btn remove-btn" data-idx="${idx}" title="移除">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>` : ''}`;
     queueEl.appendChild(div);
@@ -312,7 +670,9 @@ function renderQueue() {
   });
 }
 
-// ── Fetch with timeout ─────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════
+// API
+// ══════════════════════════════════════════════════════
 async function fetchWithTimeout(url, options, timeoutMs) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -320,44 +680,13 @@ async function fetchWithTimeout(url, options, timeoutMs) {
     const res = await fetch(url, { ...options, signal: controller.signal });
     return res;
   } catch (err) {
-    if (err.name === 'AbortError') throw new Error(`请求超时（>${timeoutMs/1000}秒）。可尝试调大超时设置或缩小PDF文件。`);
+    if (err.name === 'AbortError') throw new Error(`请求超时（>${timeoutMs/1000}秒）。可尝试调大超时设置或检查 PDF 大小。`);
     throw new Error(`网络错误: ${err.message}`);
   } finally {
     clearTimeout(timer);
   }
 }
 
-// ── DIFY API ───────────────────────────────────────────────────────────────
-async function difyUploadFile(file, config) {
-  const form = new FormData();
-  form.append('file', file, file.name);
-  form.append('user', 'batch-tool');
-  const res = await fetchWithTimeout(`${config.base}/files/upload`, {
-    method: 'POST', headers: { 'Authorization': `Bearer ${config.key}` }, body: form
-  }, config.timeout);
-  const data = await res.json();
-  if (!res.ok) throw new Error(`Dify上传失败(${res.status}): ${data.message || JSON.stringify(data)}`);
-  return data.id;
-}
-
-async function difyRunWorkflow(fileId, config) {
-  const res = await fetchWithTimeout(`${config.base}/workflows/run`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${config.key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      inputs: { pdf_file: { transfer_method: 'local_file', upload_file_id: fileId, type: 'document' } },
-      response_mode: 'blocking', user: 'batch-tool'
-    })
-  }, config.timeout);
-  const data = await res.json();
-  if (!res.ok) throw new Error(`Dify工作流失败(${res.status}): ${data.message || JSON.stringify(data)}`);
-  const outputs = data.data?.outputs || {};
-  return outputs.literature_card || outputs.text || outputs.result || outputs.output ||
-    Object.values(outputs).find(v => typeof v === 'string' && v.length > 10) ||
-    JSON.stringify(outputs, null, 2);
-}
-
-// ── COZE API ───────────────────────────────────────────────────────────────
 async function cozeUploadFile(file, config) {
   const form = new FormData();
   form.append('file', file, file.name);
@@ -367,89 +696,57 @@ async function cozeUploadFile(file, config) {
     body: form
   }, config.timeout);
   const data = await res.json();
-  // 扣子返回格式: { code: 0, data: { id: "...", file_name: "...", bytes: ... } }
-  if (data.code !== 0) throw new Error(`扣子文件上传失败(code=${data.code}): ${data.msg || JSON.stringify(data)}`);
-  return data.data.id;  // file_id
+  if (data.code !== 0) throw new Error(`文件上传失败(code=${data.code}): ${data.msg}`);
+  return data.data.id;
 }
 
 async function cozeGetFileUrl(fileId, config) {
-  // 查询文件信息，获取可访问的 URL
-  // 扣子文件信息接口：GET /v1/files/{file_id}
   const res = await fetchWithTimeout(`https://api.coze.cn/v1/files/${fileId}`, {
     method: 'GET',
     headers: { 'Authorization': `Bearer ${config.token}` }
   }, 30000);
   const data = await res.json();
   if (data.code !== 0) throw new Error(`获取文件URL失败(code=${data.code}): ${data.msg}`);
-  // 返回 file_url（扣子内部可访问地址）
   return data.data.file_url || data.data.url || null;
 }
 
-async function cozeRunWorkflow(fileId, fileName, config) {
-  // 工作流结构（来自YAML）：
-  //   开始节点 input (file类型)
-  //     → 文件读取插件 read，接收 url 参数（需要可访问的HTTP地址）
-  //     → 大模型 → 结束节点 output
-  //
-  // 关键：文件读取插件需要的是 URL 字符串，而不是 file_id
-  // 所以先查询文件信息拿到 file_url，再传给工作流
-
+async function cozeRunWorkflow(fileId, config) {
   let fileUrl = null;
-  try {
-    fileUrl = await cozeGetFileUrl(fileId, config);
-  } catch(e) {
-    // 如果获取 URL 失败，降级尝试直接传 file_id（部分版本支持）
-    console.warn('获取文件URL失败，降级传入file_id:', e.message);
-  }
+  try { fileUrl = await cozeGetFileUrl(fileId, config); }
+  catch(e) { console.warn('获取文件URL失败，降级传入file_id:', e.message); }
 
-  // 工作流 input 参数：file 类型传序列化JSON
-  // 若拿到了 file_url 则直接传 url 字符串；否则传 file_id 格式
-  const inputValue = fileUrl
-    ? fileUrl                                    // 直接传 URL 字符串
-    : JSON.stringify({ file_id: fileId });       // 降级：传 file_id 格式
+  const inputValue = fileUrl ? fileUrl : JSON.stringify({ file_id: fileId });
 
   const res = await fetchWithTimeout('https://api.coze.cn/v1/workflow/run', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${config.token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       workflow_id: config.workflowId,
-      parameters: {
-        input: inputValue   // 开始节点变量名为 "input"
-      }
+      parameters: { input: inputValue }
     })
   }, config.timeout);
 
   const data = await res.json();
-  // 扣子返回格式: { code: 0, cost: "0", data: "{\"output\":\"...\"}", msg: "Success" }
   if (data.code !== 0) throw new Error(`扣子工作流失败(code=${data.code}): ${data.msg || JSON.stringify(data)}`);
 
-  // data.data 是字符串化的 JSON：{"output": "文献卡片内容"}
   let output = data.data;
   if (typeof output === 'string') {
     try {
       const parsed = JSON.parse(output);
       output = parsed.output || parsed.literature_card || parsed.text || parsed.result ||
-        Object.values(parsed).find(v => typeof v === 'string' && v.length > 10) ||
-        output;
-    } catch {
-      // data.data 本身就是纯文本，直接使用
-    }
+        Object.values(parsed).find(v => typeof v === 'string' && v.length > 10) || output;
+    } catch {}
   }
-  return output || '（工作流无输出，请检查工作流结束节点的输出变量配置）';
+  return output || '（工作流无输出，请检查结束节点的输出变量配置）';
 }
 
-// ── Process items ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════
+// Process
+// ══════════════════════════════════════════════════════
 async function processItems(items) {
   if (isRunning) return;
   const config = cfg();
-
-  // 校验
-  if (config.platform === 'coze') {
-    if (!config.token) { alert('请填写扣子 API Token'); return; }
-    if (!config.workflowId) { alert('请填写扣子 Workflow ID\n\n在扣子工作流编排页面，从 URL 的 workflow_id= 参数后取数字'); return; }
-  } else {
-    if (!config.base || !config.key) { alert('请填写 Dify API Base URL 和 API Key'); return; }
-  }
+  if (!config.token) { alert('请填写 API Token'); return; }
 
   isRunning = true;
   setRunningUI(true);
@@ -462,19 +759,13 @@ async function processItems(items) {
     item.status = 'running'; item.errMsg = '';
     renderQueue();
     try {
-      let card;
-      if (config.platform === 'coze') {
-        const fileId = await cozeUploadFile(item.file, config);
-        card = await cozeRunWorkflow(fileId, item.file.name, config);
-      } else {
-        const fileId = await difyUploadFile(item.file, config);
-        card = await difyRunWorkflow(fileId, config);
-      }
+      const fileId = await cozeUploadFile(item.file, config);
+      const card = await cozeRunWorkflow(fileId, config);
       item.status = 'done';
       appendResult(item.file.name, card, false);
+      saveToHistory(item.file.name, card);  // ← 保存到历史
     } catch (err) {
-      item.status = 'error';
-      item.errMsg = err.message;
+      item.status = 'error'; item.errMsg = err.message;
       appendResult(item.file.name, '错误详情：\n' + err.message, true);
       console.error('[文献提取]', item.file.name, err);
     }
@@ -484,7 +775,7 @@ async function processItems(items) {
 
   isRunning = false;
   setRunningUI(false);
-  progressLabel.textContent = `完成 ${done} / ${total}`;
+  progressLabel.textContent = `✓ 完成 ${done} / ${total}`;
   renderQueue();
 }
 
@@ -500,7 +791,9 @@ function setRunningUI(running) {
     : `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> 开始提取`;
 }
 
-// ── Buttons ────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════
+// Buttons
+// ══════════════════════════════════════════════════════
 btnRun.addEventListener('click', () => {
   const pending = files.filter(f => f.status === 'pending');
   if (!pending.length) { alert('没有待处理的文件'); return; }
@@ -516,7 +809,9 @@ btnClear.addEventListener('click', () => {
   files = []; renderQueue(); progressWrap.style.display = 'none';
 });
 
-// ── Result card ────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════
+// Result card
+// ══════════════════════════════════════════════════════
 function appendResult(name, content, isError) {
   results.push({ name, content, isError });
   resultsSection.style.display = 'block';
@@ -525,9 +820,12 @@ function appendResult(name, content, isError) {
   const hdr = document.createElement('div');
   hdr.className = 'result-header';
   hdr.innerHTML = `
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${isError ? 'var(--danger)' : 'var(--success)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">
-      ${isError ? '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'
-                : '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'}
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+         stroke="${isError ? 'var(--danger)' : 'var(--success)'}"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">
+      ${isError
+        ? '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'
+        : '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'}
     </svg>
     <span class="result-title">${name}</span>
     <span class="badge badge-${isError ? 'error' : 'done'}" style="margin-right:4px">${isError ? '失败' : '完成'}</span>
@@ -545,18 +843,30 @@ function appendResult(name, content, isError) {
   card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-// ── Export ─────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════
+// Export helpers
+// ══════════════════════════════════════════════════════
+function downloadMd(content, filename) {
+  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
 btnExport.addEventListener('click', () => {
   const done = results.filter(r => !r.isError);
   if (!done.length) { alert('暂无成功的提取结果'); return; }
   const sep = '═'.repeat(54);
   const md = done.map((r, i) => `${sep}\n文献卡片 #${i+1} — ${r.name}\n${sep}\n\n${r.content}`).join('\n\n\n');
-  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `文献卡片_${new Date().toISOString().slice(0,10)}.md`;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  downloadMd(md, `文献卡片_${new Date().toISOString().slice(0,10)}.md`);
 });
+
+// ══════════════════════════════════════════════════════
+// Init
+// ══════════════════════════════════════════════════════
+renderHistory();
 </script>
 </body>
 </html>
